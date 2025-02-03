@@ -1,8 +1,18 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Node : MonoBehaviour
 {
-    public Vector2 position; // Node coordinates
-    public List<Node> connections = new List<Node>(); // Connection with nodes
+    public enum NodeType { NOT_ASSIGNED, BATTLE, TREASURE, REST, SHOP, BOSS }
+    
+    public NodeType nodeType = NodeType.NOT_ASSIGNED;
+    public int row;
+    public int column;   
+    public Vector2 gridPosition;
+    public Node nextNode;    
+    public bool selected = false;
+
+    private void OnMouseDown()
+    {
+        MapGenerator.Instance.OnNodeSelected(this);
+    }
 }
