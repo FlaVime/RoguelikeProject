@@ -1,55 +1,76 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class MapGenerator : MonoBehaviour
 {
-    public int rows = 4;
-    public int cols = 3;
-    public float xSpacing = 3f;
-    public float ySpacing = 2f;
+    [Header("Prefabs")]
+    public GameObject nodePrefab;  // Префаб узла
+    public GameObject linePrefab;  // Префаб линии (с LineRenderer)
+
+    [Header("Grid Settings")]
+    public int columns = 7;  // Количество колонок (X)
+    public int rows = 15;     // Количество рядов (Y)
+    public float xSpacing = 2.0f;
+    public float ySpacing = 2.5f;
 
     private List<Node> nodes = new List<Node>();
-    public GameObject nodePrefab;
-    public GameObject linePrefab;
-    
+
     void Start()
     {
-        GenerateMap();
-        DrawMap();
+        GenerateNodes();
+        GeneratePaths();
     }
 
-    void GenerateMap()
+    void GenerateNodes()
     {
-        for (int row = 0; row < rows; row++)
+        for (int y = 0; y < rows; y++)
         {
-            for (int col = 0; col < cols; col++)
+            for (int x = 0; x < columns; x++)
             {
-                Vector2 pos = new Vector2(col * xSpacing, -row * ySpacing);
-                Node newNode = new Node(pos, "Battle");
-                nodes.Add(newNode);
+                Vector2 position = new Vector2(x * xSpacing, y * ySpacing);
 
-                if (row > 0)
+                GameObject newNodeObj = Instantiate(nodePrefab, position, Quaternion.identity, transform);
+                newNodeObj.name = $"Node {x},{y}";
+                Node newNode = newNodeObj.AddComponent<Node>();  // Добавляем компонент Node
+                newNode.position = position;
+                nodes.Add(newNode);
+            }
+        }
+    }
+
+    void GeneratePaths()
+    {
+        foreach (Node node in nodes)
+        {
+            List<Node> possibleConnections = nodes.FindAll(n => n.position.y > node.position.y);
+            possibleConnections.Sort((a, b) => a.position.y.CompareTo(b.position.y)); // Сортируем по Y (ближайшие сверху)
+
+            int maxConnections = Random.Range(1, 3); // 1-3 пути
+            int connections = 0;
+
+            foreach (Node target in possibleConnections)
+            {
+                if (connections >= maxConnections) break;
+                if (!node.connections.Contains(target)) // Проверка на дублирование
                 {
-                    int parentIndex = Random.Range(0, cols);
-                    nodes[parentIndex].connections.Add(newNode);
+                    node.connections.Add(target);
+                    target.connections.Add(node);
+                    DrawLine(node, target);
+                    connections++;
                 }
             }
         }
     }
 
-    void DrawMap()
+    void DrawLine(Node start, Node end)
     {
-    foreach (Node node in nodes)
-    {
-        GameObject newNodeObj = Instantiate(nodePrefab, node.position, Quaternion.identity);
-        
-        foreach (Node connectedNode in node.connections)
-        {
-            GameObject newLine = Instantiate(linePrefab);
-            newLine.transform.position = (node.position + connectedNode.position) / 2;
-            newLine.transform.right = connectedNode.position - node.position;
-            newLine.transform.localScale = new Vector3(Vector2.Distance(node.position, connectedNode.position), 1, 1);
-        }
-    }
+        GameObject lineObj = Instantiate(linePrefab);
+        LineRenderer line = lineObj.GetComponent<LineRenderer>();
+
+        line.positionCount = 2;
+        line.SetPosition(0, start.position);
+        line.SetPosition(1, end.position);
+        line.startWidth = 0.1f;
+        line.endWidth = 0.1f;
     }
 }
